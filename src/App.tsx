@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { List, type RowComponentProps } from 'react-window';
 import { useInfiniteLoader } from 'react-window-infinite-loader';
@@ -43,6 +43,8 @@ function RowComponent({
 export default function App() {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [rows, setRows] = useState<Row[]>([]);
+    const [totalItems, setTotalItems] = useState(0);
+    const [notViewedCount, setNotViewedCount] = useState(0);
 
     const handleOpen = (event: MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -56,6 +58,13 @@ export default function App() {
         (index: number) => rows[index] !== undefined,
         [rows]
     );
+
+    useEffect(() => {
+        getNotifications(1, 1).then(response => {
+            setTotalItems(response.page.total_items);
+            setNotViewedCount(response.not_viewed_count);
+        });
+    }, []);
 
     const loadMoreRows = useCallback((startIndex: number, stopIndex: number) => {
         console.log(`Loading more rows... ${startIndex} - ${stopIndex}`);
@@ -90,7 +99,7 @@ export default function App() {
         loadMoreRows,
         threshold: 1,
         minimumBatchSize: 10,
-        rowCount: 1000,
+        rowCount: totalItems || 0,
     });
 
     return (
@@ -104,7 +113,7 @@ export default function App() {
                 Rows in memory: {rows.reduce((count, row) => count + (row ? 1 : 0), 0)}
             </p>
             <IconButton color="inherit" onClick={handleOpen}>
-                <Badge badgeContent={10} color="warning">
+                <Badge badgeContent={notViewedCount} color="warning">
                     <NotificationsOutlinedIcon />
                 </Badge>
             </IconButton>
@@ -116,7 +125,7 @@ export default function App() {
             >
                 <MenuItem disabled>
                     <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-                        10 Notifications
+                        {notViewedCount} New notifications
                     </Typography>
                 </MenuItem>
                 <Divider />
